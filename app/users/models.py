@@ -4,7 +4,7 @@ from sqlalchemy import String, DateTime, ForeignKey, Boolean, Enum, Date
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.enums import Lang
-from app.database.models import CommonMixin, Base
+from app.database.mixins import CommonMixin, Base
 
 
 class User(CommonMixin, Base):

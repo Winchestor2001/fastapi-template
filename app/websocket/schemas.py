@@ -1,4 +1,4 @@
-from app.database.models import Base
+from app.database.mixins import Base
 
 
 class ResponseSchema(Base):

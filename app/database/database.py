@@ -2,7 +2,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.orm import sessionmaker
 
-from app.database.models import Base
+from app.database.mixins import Base
 from app.core.settings import settings
 
 DATABASE_URL = settings.build_postgres_dsn_async()

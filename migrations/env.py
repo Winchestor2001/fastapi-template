@@ -7,7 +7,7 @@ from sqlalchemy import MetaData
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 
-from app.database.models import Base  # noqa
+from app.database.mixins import Base  # noqa
 from app.core.settings import settings
 # add model imports to models/__init__.py file
 from app.models import *  # noqa

@@ -9,7 +9,7 @@ logger = get_logger(__name__)
 router = APIRouter()
 
 
-@router.websocket("/{branch_id}")
+@router.websocket("/")
 async def websocket_endpoint(websocket: WebSocket, branch_id: str):
     manager = WebSocketManager(websocket, branch_id)
 
