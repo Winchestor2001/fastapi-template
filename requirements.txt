@@ -1,22 +1,7 @@
-fastapi
-alembic
-celery
-unicorn
-gunicorn
-pydantic-settings
-pydantic
-psycopg2
-aioredis
-asyncpg
-pre_commit
-PyJWT
-redis
-requests
-SQLAlchemy
-websockets
-sentry-sdk
-aioboto3
-firebase_admin
-pytz
-passlib
-aio-pika
+# This file is a convenience wrapper for environment-specific requirements
+# To install dependencies for a specific environment:
+#   - Production: pip install -r requirements/prod.txt
+#   - Development: pip install -r requirements/dev.txt
+
+# By default, install development dependencies
+-r requirements/dev.txt

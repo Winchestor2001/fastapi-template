@@ -1,163 +1,444 @@
+# FastAPI Template
 
-# 🚀 FastAPI Project Template
+A robust, production-ready FastAPI template designed to help you build scalable APIs using asynchronous endpoints, modular architecture, Docker, Celery for background tasks, and integrated monitoring with Flower and Nginx reverse-proxy.
 
-A modular FastAPI project template ready for production deployment, CI/CD integration, Celery tasks, and third-party service integrations.
+> **Note:** This project uses a simplified Repository Pattern to abstract data access. Unlike the full Domain-Driven Design (DDD) approach—which typically involves complex aggregate roots and domain entities—the repository implementation here serves as a straightforward abstraction layer to decouple business logic from persistence concerns without the additional overhead of DDD.
+>
+> This template uses a modular structure with core components and domain-specific folders (e.g., `user` and `admin`). The `core` folder contains common infrastructure (database connections, settings, middleware, models, and schemas) while domain modules provide placeholders for business logic and API endpoints.
 
 ---
 
-## 📁 Project Structure
+## Table of Contents
 
-```bash
-app/
-├── __init__.py
-├── main.py                # Entry point
-├── core/                  # Shared business logic, enums, utils
-├── users/                 # Users module (auth, user management)
-├── websocket/             # WebSocket API module
-├── database/              # DB connection, models, repositories
-├── integrations/          # External service integrations (S3, Firebase, etc.)
-├── api/                   # Global dependencies, middleware, routes
-├── celery_tasks/          # Celery background tasks
-├── loggers/               # Logging configuration
-tests/
-├── unit/                  # Unit tests
-├── integration/           # Integration tests
-migrations/                # Alembic migrations
-scripts/                   # CLI helper scripts
+- [Features](#features)
+- [Architecture & Directory Structure](#architecture--directory-structure)
+- [Requirements](#requirements)
+- [Containers](#containers)
+- [Deployment & Setup](#deployment--setup)
+- [Accessing the Application](#accessing-the-application)
+- [CI/CD Pipelines](#cicd-pipelines)
+- [Contributing](#contributing)
+- [Acknowledgements](#acknowledgements)
+
+---
+
+## Features
+
+- **FastAPI & Asynchronous Endpoints:** Leverage the performance and ease-of-use of FastAPI for building modern APIs.
+- **Modular Architecture:** Organized codebase with a clear separation between core functionalities and domain-specific modules.
+- **Database Integration:** Asynchronous PostgreSQL+PostGis connectivity using SQLAlchemy for async operations.
+- **Celery for Background Tasks:** Background job processing powered by Celery with RabbitMQ as the broker and Redis as the backend.
+- **Task Monitoring with Flower:** Monitor your Celery tasks in real time using Flower.
+- **Docker & Docker Compose:** Containerized setup for consistent development, testing, and production deployments.
+- **Nginx Reverse Proxy:** Configured to route external HTTP requests to your FastAPI application.
+- **Pydantic Settings:** Centralized configuration management using Pydantic (via `pydantic-settings`).
+- **Email Service:** Built-in email functionality with templating support.
+- **Redis Caching:** Advanced caching system with Redis backend support.
+- **Error Handling:** Comprehensive exception handling with custom exception types and handlers.
+- **Rate Limiting:** Built-in rate limiting capabilities to protect your API endpoints.
+- **Testing Framework:** Ready-to-use testing structure for unit and integration tests.
+
+---
+
+## Architecture & Directory Structure
+
+```
+├── docker/                              # Docker configuration files
+│   ├── Dockerfile                       # Production Dockerfile (multi-stage build)
+│   └── Dockerfile.dev                   # Development Dockerfile with hot-reload
+│
+├── migrations/                          # Alembic migrations for database schema management
+│   ├── versions/                        # Migration version files
+│   ├── env.py                           # Alembic environment configuration
+│   ├── script.py.mako                   # Alembic migration script template
+│   └── README                           # Instructions for migrations
+│
+├── postgres/                            # PostgreSQL configuration
+│   ├── Dockerfile-postgis               # Dockerfile for PostgreSQL with PostGIS
+│   ├── init-postgis.sh                  # Initialization script
+│   └── postgresql.conf                  # PostgreSQL configuration
+│
+├── requirements/                        # Python dependencies for different environments
+│   ├── base.txt                         # Base dependencies used in all environments
+│   ├── dev.txt                          # Development environment dependencies
+│   ├── test.txt                         # Testing environment dependencies
+│   └── prod.txt                         # Production environment dependencies
+│
+├── scripts/                             # Utility scripts for the application
+│   ├── __init__.py                      # Package initialization
+│   └── check_env.py                     # Environment validation script
+│
+├── src/                                 # Application source code
+│   ├── admin/                           # Admin functionality
+│   │   ├── auth/                        # Authentication logic for admin users
+│   │   ├── dependencies.py              # Admin dependencies
+│   │   ├── exceptions.py                # Admin-specific exceptions
+│   │   ├── models.py                    # Admin data models (ORM)
+│   │   ├── repositories.py              # Admin data repository layer
+│   │   ├── routers.py                   # Admin API endpoints
+│   │   ├── schemas.py                   # Admin Pydantic schemas
+│   │   └── services.py                  # Admin business logic services
+│   │
+│   ├── core/                            # Core components shared across the application
+│   │   ├── database/                    # Database connection and ORM setup
+│   │   │   ├── database_async.py        # Async database setup
+│   │   │   ├── models.py                # Declarative Base and Mixins
+│   │   │   ├── redis.py                 # Redis connection utilities
+│   │   │   └── repositories.py          # Core data repositories
+│   │   │
+│   │   ├── email_service/               # Email service functionality
+│   │   │   ├── config.py                # Email configuration
+│   │   │   ├── dependencies.py          # Email dependencies
+│   │   │   ├── fastapi_mailer.py        # FastAPI-Mail integration
+│   │   │   ├── interfaces.py            # Email service interfaces
+│   │   │   ├── schemas.py               # Email data schemas
+│   │   │   ├── service.py               # Email service implementation
+│   │   │   ├── tasks.py                 # Celery tasks for email
+│   │   │   └── templates/               # Email templates
+│   │   │
+│   │   ├── errors/                      # Error handling
+│   │   │   ├── exceptions.py            # Custom exception classes
+│   │   │   └── handlers.py              # Exception handlers
+│   │   │
+│   │   ├── limiter/                     # Rate limiting functionality
+│   │   │   ├── depends.py               # Dependencies for rate limiting
+│   │   │   └── script.py                # Rate limiting implementation
+│   │   │
+│   │   ├── patterns/                    # Design patterns
+│   │   │   └── singleton.py             # Singleton pattern implementation
+│   │   │
+│   │   ├── redis/                       # Redis caching system
+│   │   │   ├── cache/                   # Caching implementation
+│   │   │   │   ├── backend/             # Cache backends
+│   │   │   │   ├── coder/               # Data encoding/decoding
+│   │   │   │   ├── manager/             # Cache management
+│   │   │   │   ├── decorators.py        # Cache decorators
+│   │   │   │   ├── lifecycle.py         # Cache lifecycle management
+│   │   │   │   └── tags.py              # Cache tagging system
+│   │   │   ├── core.py                  # Redis core functionality
+│   │   │   └── lifecycle.py             # Redis lifecycle management
+│   │   │
+│   │   ├── utils/                       # Utility functions
+│   │   │   ├── datetime_utils.py        # Date and time utilities
+│   │   │   ├── retry.py                 # Retry mechanism
+│   │   │   └── security.py              # Security utilities
+│   │   │
+│   │   ├── middleware.py                # Application middleware setup
+│   │   ├── routes.py                    # Core API routes
+│   │   ├── schemas.py                   # Core data validation schemas
+│   │   ├── services.py                  # Core services shared across modules
+│   │   └── validations.py               # Data validation utilities
+│   │
+│   ├── main/                            # Application entry points
+│   │   ├── config.py                    # Application configuration settings
+│   │   ├── lifespan.py                  # Application lifecycle management
+│   │   ├── presentation.py              # API presentation layer
+│   │   └── web.py                       # FastAPI application setup
+│   │
+│   ├── system/                          # System-level functionality
+│   │   └── routers.py                   # System API endpoints (health, time)
+│   │
+│   └── user/                            # User functionality
+│       ├── auth/                        # Authentication logic for regular users
+│       ├── dependencies.py              # User dependencies
+│       ├── exceptions.py                # User-specific exceptions
+│       ├── models.py                    # User data models (ORM)
+│       ├── repositories.py              # User data repository layer
+│       ├── routers.py                   # User API endpoints
+│       ├── schemas.py                   # User Pydantic schemas
+│       ├── services.py                  # User business logic services
+│       └── tasks.py                     # Celery tasks for users
+│
+├── tests/                               # Test suite
+│   └── email/                           # Tests for email functionality
+│       ├── mocks.py                     # Mock objects for testing
+│       └── test_email_service.py        # Tests for email service
+│
+├── celery_tasks/                        # Celery task management
+│   └── main.py                          # Celery application setup
+│
+├── loggers/                             # Logging configurations
+│   └── __init__.py                      # Logger setup
+│
+├── models/                              # Shared data models
+│   └── __init__.py                      # Models package initialization
+│
+├── Makefile                             # Makefile with predefined commands
+├── alembic.ini                          # Alembic configuration file
+├── docker-compose.yml                   # Docker Compose configuration
+├── docker-compose.override.yml          # Docker Compose overrides for development
+├── nginx.conf                           # Nginx configuration
+├── redis.conf                           # Redis configuration
+├── requirements.txt                     # Main requirements file
+├── pytest.ini                           # PyTest configuration
+├── mypy.ini                             # MyPy configuration
+└── main.py                              # Application entry point
 ```
 
 ---
 
-## 🛠 Technologies Used
+## Requirements
+- Docker & Docker Compose
+---
 
-- **FastAPI** — main backend framework
-- **SQLAlchemy** + Alembic — database ORM and migrations
-- **Pydantic** — data validation and serialization
-- **PostgreSQL** (default)
-- **Redis** — caching and Celery backend
-- **Celery** — background tasks and async processing
-- **Docker** + Docker Compose — containerization and orchestration
-- **Nginx** — reverse proxy server
-- **pytest + coverage** — testing and code coverage
-- **pre-commit** — automatic checks before commits
-- **GitHub Actions / CI (optional)** — continuous integration and automation
+## Containers
+- **Postgres:**
+  Hosts the PostgreSQL database with PostGIS capabilities. Built using `Dockerfile-postgis` in the postgres directory, it uses environment variables for credentials and persists data in a dedicated volume.
+
+- **App:**
+  Runs the main FastAPI application. It starts the server (using Uvicorn, or optionally Gunicorn with Uvicorn workers).
+
+- **Celery_worker:**
+  Executes background tasks using Celery.
+
+- **Celery_beat:**
+  Acts as the scheduler for periodic tasks.
+
+- **Flower:**
+  Provides real-time monitoring for Celery tasks. Based on the official Flower image, it’s built to include your project code.
+
+- **Nginx:**
+  Serves as a reverse proxy that routes external HTTP requests to the FastAPI application.
+
+- **Redis:**
+  Runs the Redis server for caching and as a Celery result backend. It is secured with a password and persists data in a Docker volume.
+
+- **RabbitMQ:**
+  Functions as the message broker for Celery tasks. It uses the official RabbitMQ image with the management plugin enabled, exposing both AMQP (for messaging) and management (for UI) ports.
 
 ---
 
-## ⚙️ Quick Start
+## Deployment & Setup
 
-### 1. Clone the repository
+This project is entirely containerized and must be deployed using Docker Compose. A Makefile is provided to simplify common tasks such as building, running, stopping, and managing migrations. Follow the instructions below to get started.
+
+### Prerequisites
+
+- **Docker:** [Install Docker](https://docs.docker.com/get-docker/)
+- **Docker Compose:** [Install Docker Compose](https://docs.docker.com/compose/install/)
+
+### Cloning the Repository
+
+1. Open your terminal.
+2. Clone the repository:
+
+   ```bash
+   git clone https://github.com/darkweid/fastapi-template.git
+   cd fastapi-template
+   ```
+
+3. Copy the example environment file to create your own:
+
+   ```bash
+   cp .env.example .env
+   ```
+
+4. Open the `.env` file in your favorite editor and configure the required environment variables (e.g., database credentials, RabbitMQ settings, etc.).
+
+### Running the Project
+
+The project uses Docker Compose to orchestrate all services, including the FastAPI app, PostgreSQL, Redis, RabbitMQ, Celery Worker, Celery Beat, Flower, and Nginx. Use the provided Makefile to simplify the workflow.
+
+#### Building & Starting the Containers
+
+By following these instructions and using the provided Makefile, you can easily deploy and manage the entire project stack with a few simple commands. Happy coding!
+
+To build the Docker images (if needed) and run all containers in detached mode, use:
 
 ```bash
-git clone https://github.com/your-org/fastapi-template.git
-cd fastapi-template
+make run
 ```
 
-### 2. Copy and configure the `.env` file
+This command will:
+- Build the images as necessary.
+- Start all services defined in the `docker-compose.yml` file.
+
+#### Running in Development Mode with Auto-Reload
+
+For development with auto-reload functionality (hot reloading when code changes), use:
 
 ```bash
-cp .env.example .env
+make run-dev
 ```
 
-### 3. Build and run the containers
+This command will:
+- Build development images that include development dependencies like uvicorn.
+- Start services with the configurations from both `docker-compose.yml` and `docker-compose.override.yml`.
+- Enable auto-reload for the FastAPI application.
+
+#### Viewing Logs
+
+To view logs for all services:
 
 ```bash
-docker-compose up --build
+make logs
 ```
 
-### 4. Run database migrations
+To view logs for a specific service, such as the FastAPI app:
 
 ```bash
-docker-compose exec backend alembic upgrade head
+make logs-app
 ```
 
----
+Other services (Celery Worker, Celery Beat, PostgreSQL, etc.) can be inspected using the corresponding Makefile targets (e.g., `logs-celery`, `logs-celery-beat`, `logs-postgres`).
 
-## 🧪 Testing
+#### Stopping and Cleaning Up
 
-### Run all tests with coverage
+- To stop all running containers:
 
-```bash
-pytest --cov=app --cov-config=.coveragerc
-```
+  ```bash
+  make down
+  ```
 
-### Generate HTML coverage report
+- To remove containers, networks, ***volumes***, and local images (and clean up orphaned containers):
 
-```bash
-coverage html
-open coverage_html_report/index.html  # macOS / use your system’s equivalent
-```
+  ```bash
+  make clean
+  ```
 
----
+- To restart containers:
 
-## 📦 Makefile
+  ```bash
+  make restart
+  ```
 
-A `Makefile` is provided to simplify common operations:
+#### Additional Commands
 
-```bash
-make build         # docker-compose build
-make up            # docker-compose up
-make down          # docker-compose down
-make migrate       # alembic upgrade head
-make test          # run tests
-make lint          # run linters
-```
+- **Open a Shell in the App Container:**
 
----
+  ```bash
+  make shell
+  ```
 
-## 🧱 Architecture
+- **Database Migrations:**
 
-This project uses a **domain-based modular structure**:
+  - Create a new migration (replace `Your migration message` with an appropriate message):
 
-- Each business domain is located in its own folder (e.g. `users`, `websocket`, etc.)
-- Inside each domain: models, schemas, services, repositories, routers
-- Shared and infrastructure modules are placed in `core/`, `integrations/`, `database/`, `api/`
+    ```bash
+    make migration message="Your migration message"
+    ```
 
-> This modular structure allows for easier scaling and separation of concerns.
+  - Apply all migrations:
 
----
+    ```bash
+    make migrate
+    ```
 
-## 🔌 Integrations
+#### Development and Production Deployment
 
-The `integrations/` folder contains connections to external services:
+For simplified deployment workflows, use:
 
-- `firebase/` — Firebase SDK integration
-- `aws/` — Amazon S3 support
-- `redis/` — Redis client
-- `payments/`, `sms/` — external service providers
+- Development deployment:
 
----
+  ```bash
+  make deploy-dev
+  ```
 
-## 🚀 Deployment
+- Production deployment:
 
-This project is production-ready and containerized:
+  ```bash
+  make deploy-prod
+  ```
 
-- Use a separate `.env.production` file for production environments
-- Nginx is preconfigured as a reverse proxy to FastAPI
-- Celery can be launched via a separate worker container
+#### Resource Cleanup
 
----
+To clean up Docker resources:
 
-## 💡 TODO (customizable per project)
+- Basic cleanup (keeps build cache):
 
-- [ ] Configure CI/CD (GitHub Actions, GitLab CI, etc.)
-- [ ] Add OpenAPI authentication
-- [ ] Integrate monitoring tools (Sentry, Prometheus)
-- [ ] Implement role-based access control (RBAC)
-- [ ] Enable Swagger token-based authorization
-- [ ] Add basic tests (healthcheck, authentication, user flows)
+  ```bash
+  make clean-resources
+  ```
 
----
+- Aggressive cleanup (removes all unused resources):
 
-## 🧙 Tips for Using the Template
-
-- Copy the `users/` module to scaffold new domains (e.g. `orders/`)
-- Use `core/` only for truly shared business logic
-- Keep all external service clients in `integrations/`
-- Don’t forget to enable `pre-commit` and format your code
+  ```bash
+  make clean-resources-hard
+  ```
 
 ---
 
-## 📎 License
+### Accessing the Application
 
-MIT. Free to use, fork, extend and build awesome projects.
+- **FastAPI Application:**
+  The API is exposed via Nginx on port **80** (You can easily change port in `nginx.conf` and `docker-compose.yml` files). Open your browser and navigate to [http://localhost](http://localhost).
+
+- **API Documentation:**
+  Once the app is running, access Swagger UI at [http://localhost/docs](http://localhost/docs) or ReDoc at [http://localhost/redoc](http://localhost/redoc).
+
+- **Flower Monitoring:**
+  Monitor your Celery tasks at [http://localhost:5555](http://localhost:5555).
+
+### Troubleshooting
+
+- Ensure Docker and Docker Compose are properly installed.
+- Verify that your `.env` file is correctly configured.
+- Use `make logs` or specific log commands (e.g., `make logs-app`) to check for error messages.
+- If you encounter issues with database migrations, make sure the PostgreSQL container is running and accessible.
+
+---
+
+## CI/CD Pipelines
+
+This template includes robust CI/CD workflows implemented with GitHub Actions to automate testing, building, and deployment processes. The CI/CD configuration prioritizes both reliability and performance through strategic optimizations.
+
+### Continuous Integration (CI)
+
+The CI pipeline (`.github/workflows/ci.yml`) automatically runs on each pull request and push to the main branch:
+
+- **Caching System:** The pipeline implements multiple caching layers to significantly improve execution speed:
+  - **Python Virtual Environment:** Caches the entire virtual environment based on `requirements.txt` hash
+  - **Pre-commit Cache:** Stores pre-commit hook environments to avoid redundant installations
+  - **Dependency Resolution:** Uses cached dependencies when possible while ensuring up-to-date packages
+
+- **Code Quality Checks:**
+  - **Linting:** Enforces code standards with flake8, black, and isort via `make check-lint`
+  - **Migration Validation:** Verifies Alembic migration heads to prevent multiple head conflicts
+
+- **Testing:**
+  - **Test Environment Setup:** Automatically creates a test environment from `.env.example`
+  - **Unit Tests:** Runs the pytest suite through `make test` command
+
+### Continuous Deployment (CD)
+
+The CD pipeline (`.github/workflows/deploy.yml`) triggers automatically after successful CI completion:
+
+- **Deployment Protection:**
+  - **Branch Filtering:** Only deploys successful builds from the main branch
+  - **Concurrency Control:** Prevents simultaneous deployments to avoid conflicts
+  - **Environment Validation:** Verifies environment configuration with `check_env.py` script
+
+- **Deployment Process:**
+  - **Secure SSH Connection:** Establishes secure connection to the deployment server
+  - **Application Update:** Pulls latest code and deploys using `make deploy-prod`
+  - **Resource Management:** Cleans up resources post-deployment with `make clean-resources`
+  - **Nginx Restart:** Ensures web server configuration is updated
+
+- **Notification System:**
+  - **Deployment Status:** Sends detailed deployment notifications to Telegram
+  - **Performance Metrics:** Includes duration time and version information
+  - **Quick Access:** Provides links to the GitHub pipeline for troubleshooting
+
+To use these pipelines for your project, configure the necessary secrets in your GitHub repository settings (SSH keys, server IP, Telegram tokens, etc.).
+
+---
+
+## Contributing
+
+Contributions are welcome! Please follow these steps:
+1. Fork the repository.
+2. Create a new branch (`git checkout -b feature/your-feature`).
+3. Commit your changes.
+4. Push to your branch.
+5. Open a Pull Request with a clear description of your changes.
+
+---
+
+## Acknowledgements
+
+- [FastAPI](https://fastapi.tiangolo.com/)
+- [SQLAlchemy](https://www.sqlalchemy.org/)
+- [Celery](https://docs.celeryproject.org/)
+- [Flower](https://flower.readthedocs.io/)
+- [Docker](https://www.docker.com/)
+- [Pydantic](https://pydantic-docs.helpmanual.io/)
